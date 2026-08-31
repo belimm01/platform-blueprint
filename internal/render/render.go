@@ -141,7 +141,7 @@ func resourceName(parts ...string) string {
 	readable := strings.Join(parts, "-")
 	hashInput := strings.Join(parts, "\x00")
 	digest := sha256.Sum256([]byte(hashInput))
-	suffix := hex.EncodeToString(digest[:4])
+	suffix := hex.EncodeToString(digest[:16])
 	maxPrefixLength := 63 - len(suffix) - 1
 	if len(readable) > maxPrefixLength {
 		readable = readable[:maxPrefixLength]

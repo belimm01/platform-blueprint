@@ -17,7 +17,7 @@ func TestManifestsContainPlatformGuardrailsAndGitOpsApplication(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := string(data)
-	for _, want := range []string{"commerce-production", "name: commerce-catalog-api-production-", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
+	for _, want := range []string{"commerce-production", "name: commerce-catalog-api-productio-", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
 		if !strings.Contains(output, want) {
 			t.Errorf("rendered output does not contain %q", want)
 		}
@@ -48,6 +48,15 @@ func TestApplicationNamesAreUniqueAcrossOwnersAndHyphenatedComponents(t *testing
 	}
 	if !strings.Contains(string(commerce), "name: commerce-api-production-") || !strings.Contains(string(identity), "name: identity-api-production-") {
 		t.Fatal("application names do not retain a readable owner prefix")
+	}
+}
+
+func TestResourceNameResistsKnownShortHashCollision(t *testing.T) {
+	owner := strings.Repeat("o", 40)
+	first := resourceName(owner, "serviceprefixx0001tb", "production")
+	second := resourceName(owner, "serviceprefixx001ovv", "production")
+	if first == second {
+		t.Fatalf("known 32-bit collision produced identical resource name %q", first)
 	}
 }
 
