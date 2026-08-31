@@ -1,0 +1,16 @@
+{
+  "name": "catalog-api",
+  "owner": "commerce",
+  "repository": "https://github.com/example/catalog-service",
+  "image": "ghcr.io/example/catalog-service:1.2.3",
+  "port": 8080,
+  "environment": "production",
+  "replicas": 3,
+  "cpu": "250m",
+  "memory": "256Mi",
+  "public": false,
+  "labels": {
+    "cost-center": "commerce",
+    "tier": "backend"
+  }
+}

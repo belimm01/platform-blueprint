@@ -1,0 +1,27 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-workload-guardrails
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-probes-and-resources
+      match:
+        any:
+          - resources:
+              kinds: [Deployment]
+      validate:
+        message: Deployments must define resource requests, limits, and health probes.
+        foreach:
+          - list: request.object.spec.template.spec.containers
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"
+              readinessProbe: {}
+              livenessProbe: {}

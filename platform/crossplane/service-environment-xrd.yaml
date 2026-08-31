@@ -1,0 +1,31 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: serviceenvironments.platform.belimm.dev
+spec:
+  group: platform.belimm.dev
+  names:
+    kind: ServiceEnvironment
+    plural: serviceenvironments
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [owner, environment]
+              properties:
+                owner:
+                  type: string
+                  minLength: 1
+                environment:
+                  type: string
+                  enum: [development, staging, production]
+                objectStorage:
+                  type: boolean
+                  default: false
