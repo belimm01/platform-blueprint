@@ -11,4 +11,5 @@ verify:
 	go run ./cmd/platformctl validate -file examples/catalog-service.json
 
 render:
+	mkdir -p build
 	go run ./cmd/platformctl render -file examples/catalog-service.json -out build/catalog.yaml

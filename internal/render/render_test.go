@@ -7,14 +7,17 @@ import (
 	"github.com/belimm01/platform-blueprint/internal/claim"
 )
 
+func renderClaim(owner, name string) claim.ServiceClaim {
+	return claim.ServiceClaim{Name: name, Owner: owner, Repository: "https://github.com/example/catalog", Image: "ghcr.io/example/catalog:1.2.3", Port: 8080, Environment: "production", Replicas: 3, CPU: "250m", Memory: "256Mi"}
+}
+
 func TestManifestsContainPlatformGuardrailsAndGitOpsApplication(t *testing.T) {
-	c := claim.ServiceClaim{Name: "catalog-api", Owner: "commerce", Repository: "https://github.com/example/catalog", Image: "ghcr.io/example/catalog:1.2.3", Port: 8080, Environment: "production", Replicas: 3, CPU: "250m", Memory: "256Mi"}
-	data, err := Manifests(c)
+	data, err := Manifests(renderClaim("commerce", "catalog-api"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	output := string(data)
-	for _, want := range []string{"commerce-production", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
+	for _, want := range []string{"commerce-production", "commerce-catalog-api-production", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
 		if !strings.Contains(output, want) {
 			t.Errorf("rendered output does not contain %q", want)
 		}
@@ -22,8 +25,36 @@ func TestManifestsContainPlatformGuardrailsAndGitOpsApplication(t *testing.T) {
 }
 
 func TestManifestsRequireTaggedImage(t *testing.T) {
-	c := claim.ServiceClaim{Image: "ghcr.io/example/catalog"}
+	c := renderClaim("commerce", "catalog-api")
+	c.Image = "ghcr.io/example/catalog"
 	if _, err := Manifests(c); err == nil {
 		t.Fatal("expected untagged image to be rejected")
+	}
+}
+
+func TestApplicationNamesAreUniqueAcrossOwners(t *testing.T) {
+	commerce, err := Manifests(renderClaim("commerce", "api"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := Manifests(renderClaim("identity", "api"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(commerce) == string(identity) {
+		t.Fatal("claims owned by different teams rendered identical manifests")
+	}
+	if !strings.Contains(string(commerce), "name: commerce-api-production") || !strings.Contains(string(identity), "name: identity-api-production") {
+		t.Fatal("application names do not include owner")
+	}
+}
+
+func TestResourceNameIsStableAndDNSLengthSafe(t *testing.T) {
+	name := resourceName(strings.Repeat("a", 40), strings.Repeat("b", 40), "development")
+	if len(name) > 63 {
+		t.Fatalf("resource name has %d characters", len(name))
+	}
+	if name != resourceName(strings.Repeat("a", 40), strings.Repeat("b", 40), "development") {
+		t.Fatal("resource name is not deterministic")
 	}
 }
