@@ -52,6 +52,23 @@ func TestValidateRejectsControlCharactersAndInvalidQuantities(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsZeroCPUQuantities(t *testing.T) {
+	for _, value := range []string{"0", "0m", "0.0", "0.00"} {
+		c := validClaim()
+		c.CPU = value
+		if err := c.Validate(); err == nil {
+			t.Errorf("expected CPU quantity %q to be rejected", value)
+		}
+	}
+	for _, value := range []string{"1m", "0.001", "0.5", "1"} {
+		c := validClaim()
+		c.CPU = value
+		if err := c.Validate(); err != nil {
+			t.Errorf("expected CPU quantity %q to be accepted: %v", value, err)
+		}
+	}
+}
+
 func TestLoadRejectsUnknownFieldsAndExplicitZeroReplicas(t *testing.T) {
 	for name, document := range map[string]string{
 		"unknown field": `{"name":"api","owner":"team","repository":"https://github.com/example/api","image":"ghcr.io/example/api:1","port":8080,"replica":7}`,

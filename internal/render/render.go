@@ -138,12 +138,14 @@ func splitImage(image string) (string, string, error) {
 }
 
 func resourceName(parts ...string) string {
-	name := strings.Join(parts, "-")
-	if len(name) <= 63 {
-		return name
-	}
-	digest := sha256.Sum256([]byte(name))
+	readable := strings.Join(parts, "-")
+	hashInput := strings.Join(parts, "\x00")
+	digest := sha256.Sum256([]byte(hashInput))
 	suffix := hex.EncodeToString(digest[:4])
-	prefix := strings.TrimRight(name[:63-len(suffix)-1], "-")
+	maxPrefixLength := 63 - len(suffix) - 1
+	if len(readable) > maxPrefixLength {
+		readable = readable[:maxPrefixLength]
+	}
+	prefix := strings.TrimRight(readable, "-")
 	return prefix + "-" + suffix
 }

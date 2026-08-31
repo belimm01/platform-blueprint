@@ -17,7 +17,7 @@ func TestManifestsContainPlatformGuardrailsAndGitOpsApplication(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := string(data)
-	for _, want := range []string{"commerce-production", "commerce-catalog-api-production", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
+	for _, want := range []string{"commerce-production", "name: commerce-catalog-api-production-", "kind: ResourceQuota", "kind: NetworkPolicy", "kind: Application", "ghcr.io/example/catalog", "1.2.3"} {
 		if !strings.Contains(output, want) {
 			t.Errorf("rendered output does not contain %q", want)
 		}
@@ -32,7 +32,7 @@ func TestManifestsRequireTaggedImage(t *testing.T) {
 	}
 }
 
-func TestApplicationNamesAreUniqueAcrossOwners(t *testing.T) {
+func TestApplicationNamesAreUniqueAcrossOwnersAndHyphenatedComponents(t *testing.T) {
 	commerce, err := Manifests(renderClaim("commerce", "api"))
 	if err != nil {
 		t.Fatal(err)
@@ -41,11 +41,13 @@ func TestApplicationNamesAreUniqueAcrossOwners(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(commerce) == string(identity) {
-		t.Fatal("claims owned by different teams rendered identical manifests")
+	ambiguousA := resourceName("a-b", "c", "production")
+	ambiguousB := resourceName("a", "b-c", "production")
+	if string(commerce) == string(identity) || ambiguousA == ambiguousB {
+		t.Fatal("distinct claim tuples produced a colliding application name")
 	}
-	if !strings.Contains(string(commerce), "name: commerce-api-production") || !strings.Contains(string(identity), "name: identity-api-production") {
-		t.Fatal("application names do not include owner")
+	if !strings.Contains(string(commerce), "name: commerce-api-production-") || !strings.Contains(string(identity), "name: identity-api-production-") {
+		t.Fatal("application names do not retain a readable owner prefix")
 	}
 }
 

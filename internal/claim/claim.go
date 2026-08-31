@@ -12,7 +12,7 @@ import (
 )
 
 var dnsLabel = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-var cpuQuantity = regexp.MustCompile(`^(?:[1-9][0-9]*|[1-9][0-9]*m|0\.[0-9]+)$`)
+var cpuQuantity = regexp.MustCompile(`^(?:[1-9][0-9]*|[1-9][0-9]*m|0\.[0-9]*[1-9][0-9]*)$`)
 var memoryQuantity = regexp.MustCompile(`^[1-9][0-9]*(?:Ki|Mi|Gi|Ti)$`)
 
 var allowedEnvironments = map[string]bool{
