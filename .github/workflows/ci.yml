@@ -17,8 +17,4 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - run: gofmt -w . && git diff --exit-code
-      - run: go vet ./...
-      - run: go test -race ./...
-      - run: go run ./cmd/platformctl validate -file examples/catalog-service.json
-      - run: go run ./cmd/platformctl render -file examples/catalog-service.json -out /tmp/catalog.yaml
+      - run: make verify
