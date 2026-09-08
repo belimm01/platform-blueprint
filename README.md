@@ -35,12 +35,12 @@ service claim --> platformctl validate/render --> reviewed Git change
 Requires Go 1.23+; no cluster or cloud account is needed for validation and rendering.
 
 ```bash
-go test -race ./...
+make verify
 go run ./cmd/platformctl validate -file examples/catalog-service.json
 go run ./cmd/platformctl render -file examples/catalog-service.json > /tmp/catalog.yaml
 ```
 
-The example renders a namespace boundary, quota, default-deny ingress policy, and Argo CD `Application`. Invalid input fails before any external mutation.
+The example renders a namespace boundary, quota, default-deny ingress policy, and Argo CD `Application`. `make verify` runs formatting, static analysis, race-tested unit coverage, contract validation, and strict Kubernetes schema validation for the generated built-in resources. Custom resources without a bundled schema are reported as skipped. Invalid input fails before any external mutation.
 
 ## Repository map
 
