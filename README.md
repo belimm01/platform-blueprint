@@ -61,6 +61,7 @@ examples/                 executable service claims
 - [ADR 0001: GitOps mutation boundary](docs/adr/0001-gitops-boundary.md)
 - [Security model and trust boundaries](docs/security.md)
 - [Operations runbook](docs/runbook.md)
+- [Local promotion and rollback rehearsal](docs/promotion-and-rollback.md)
 
 ## Scope
 
