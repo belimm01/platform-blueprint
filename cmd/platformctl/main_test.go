@@ -89,7 +89,7 @@ func TestCLIOutputBoundaries(t *testing.T) {
 		{"malformed JSON", `{`, "invalid service claim: decode JSON:"},
 		{"unknown field", strings.Replace(valid, `"port":8080`, `"port":8080,"replica":2`, 1), "invalid service claim: decode JSON:"},
 		{"invalid port", strings.Replace(valid, `8080`, `0`, 1), "invalid service claim: port must"},
-		{"untagged image", strings.Replace(valid, `api:1.2.3`, `api`, 1), "render manifests:"},
+		{"untagged image", strings.Replace(valid, `api:1.2.3`, `api`, 1), "invalid service claim: image must include an immutable tag"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			path := writeClaim(t, test.document)
