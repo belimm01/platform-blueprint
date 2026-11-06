@@ -110,6 +110,8 @@ func (c ServiceClaim) Validate() error {
 	}
 	if c.Image == "" || strings.ContainsAny(c.Image, " \t\r\n") {
 		problems = append(problems, "image must be a non-empty container reference without whitespace")
+	} else if _, _, err := SplitImage(c.Image); err != nil {
+		problems = append(problems, "image must include an immutable tag such as repository:1.2.3")
 	}
 	if c.Port < 1 || c.Port > 65535 {
 		problems = append(problems, "port must be between 1 and 65535")
@@ -130,6 +132,22 @@ func (c ServiceClaim) Validate() error {
 		return errors.New(strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+func SplitImage(image string) (repository string, tag string, err error) {
+	lastSlash, lastColon := -1, -1
+	for index, character := range image {
+		if character == '/' {
+			lastSlash = index
+		}
+		if character == ':' {
+			lastColon = index
+		}
+	}
+	if lastColon <= lastSlash || lastColon == len(image)-1 {
+		return "", "", fmt.Errorf("image %q must include an immutable tag", image)
+	}
+	return image[:lastColon], image[lastColon+1:], nil
 }
 
 func validRepository(value string) bool {

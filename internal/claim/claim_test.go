@@ -69,6 +69,24 @@ func TestValidateRejectsZeroCPUQuantities(t *testing.T) {
 	}
 }
 
+func TestValidateRequiresImmutableImageTag(t *testing.T) {
+	for _, image := range []string{"nginx", "ghcr.io/example/catalog", "ghcr.io/example/catalog:", "localhost:5000/example/catalog"} {
+		c := validClaim()
+		c.Image = image
+		err := c.Validate()
+		if err == nil || !strings.Contains(err.Error(), "immutable tag") {
+			t.Errorf("expected image %q to be rejected for a missing tag, got %v", image, err)
+		}
+	}
+	for _, image := range []string{"nginx:1", "ghcr.io/example/catalog:1.2.3", "localhost:5000/example/catalog:1.2.3"} {
+		c := validClaim()
+		c.Image = image
+		if err := c.Validate(); err != nil {
+			t.Errorf("expected tagged image %q to be accepted: %v", image, err)
+		}
+	}
+}
+
 func TestLoadRejectsUnknownFieldsAndExplicitZeroReplicas(t *testing.T) {
 	for name, document := range map[string]string{
 		"unknown field": `{"name":"api","owner":"team","repository":"https://github.com/example/api","image":"ghcr.io/example/api:1","port":8080,"replica":7}`,

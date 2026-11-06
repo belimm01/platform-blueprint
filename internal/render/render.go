@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -90,7 +89,7 @@ type view struct {
 }
 
 func Manifests(c claim.ServiceClaim) ([]byte, error) {
-	repository, tag, err := splitImage(c.Image)
+	repository, tag, err := claim.SplitImage(c.Image)
 	if err != nil {
 		return nil, err
 	}
@@ -119,22 +118,6 @@ func Manifests(c claim.ServiceClaim) ([]byte, error) {
 	var output bytes.Buffer
 	err = manifestTemplate.Execute(&output, data)
 	return output.Bytes(), err
-}
-
-func splitImage(image string) (string, string, error) {
-	lastSlash, lastColon := -1, -1
-	for index, character := range image {
-		if character == '/' {
-			lastSlash = index
-		}
-		if character == ':' {
-			lastColon = index
-		}
-	}
-	if lastColon <= lastSlash || lastColon == len(image)-1 {
-		return "", "", fmt.Errorf("image %q must include an immutable tag", image)
-	}
-	return image[:lastColon], image[lastColon+1:], nil
 }
 
 func resourceName(parts ...string) string {
