@@ -8,12 +8,17 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 )
 
 var dnsLabel = regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
 var cpuQuantity = regexp.MustCompile(`^(?:[1-9][0-9]*|[1-9][0-9]*m|0\.[0-9]*[1-9][0-9]*)$`)
 var memoryQuantity = regexp.MustCompile(`^[1-9][0-9]*(?:Ki|Mi|Gi|Ti)$`)
+var labelNameSegment = regexp.MustCompile(`^[a-z0-9A-Z]([a-z0-9A-Z._-]*[a-z0-9A-Z])?$`)
+var labelPrefix = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
+const reservedLabelPrefix = "platform.belimm.dev"
 
 var allowedEnvironments = map[string]bool{
 	"development": true,
@@ -128,6 +133,14 @@ func (c ServiceClaim) Validate() error {
 	if !memoryQuantity.MatchString(c.Memory) {
 		problems = append(problems, "memory must be a positive binary quantity such as 128Mi or 2Gi")
 	}
+	for _, key := range c.OrderedLabelKeys() {
+		if !validLabelKey(key) {
+			problems = append(problems, fmt.Sprintf("label key %q must be a Kubernetes label key outside the reserved %s/ prefix", key, reservedLabelPrefix))
+		}
+		if value := c.Labels[key]; !validLabelValue(value) {
+			problems = append(problems, fmt.Sprintf("label %q value %q must be empty or at most 63 characters of alphanumerics, '-', '_', or '.'", key, value))
+		}
+	}
 	if len(problems) > 0 {
 		return errors.New(strings.Join(problems, "; "))
 	}
@@ -148,6 +161,31 @@ func SplitImage(image string) (repository string, tag string, err error) {
 		return "", "", fmt.Errorf("image %q must include an immutable tag", image)
 	}
 	return image[:lastColon], image[lastColon+1:], nil
+}
+
+func (c ServiceClaim) OrderedLabelKeys() []string {
+	keys := make([]string, 0, len(c.Labels))
+	for key := range c.Labels {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func validLabelKey(key string) bool {
+	name := key
+	if slash := strings.IndexByte(key, '/'); slash >= 0 {
+		prefix := key[:slash]
+		name = key[slash+1:]
+		if prefix == reservedLabelPrefix || len(prefix) > 253 || !labelPrefix.MatchString(prefix) {
+			return false
+		}
+	}
+	return len(name) <= 63 && labelNameSegment.MatchString(name)
+}
+
+func validLabelValue(value string) bool {
+	return value == "" || (len(value) <= 63 && labelNameSegment.MatchString(value))
 }
 
 func validRepository(value string) bool {
