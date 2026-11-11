@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -19,6 +18,9 @@ metadata:
   labels:
     platform.belimm.dev/owner: {{ .Owner }}
     platform.belimm.dev/environment: {{ .Environment }}
+{{- range .ClaimLabels }}
+    {{ .Key }}: {{ .ValueYAML }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -77,6 +79,11 @@ spec:
       - CreateNamespace=false
 `))
 
+type labelLine struct {
+	Key       string
+	ValueYAML string
+}
+
 type view struct {
 	claim.ServiceClaim
 	Namespace           string
@@ -86,6 +93,7 @@ type view struct {
 	ImageTagYAML        string
 	CPUYAML             string
 	MemoryYAML          string
+	ClaimLabels         []labelLine
 }
 
 func Manifests(c claim.ServiceClaim) ([]byte, error) {
@@ -93,17 +101,10 @@ func Manifests(c claim.ServiceClaim) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Stable label traversal preserves byte-identical output if labels are rendered later.
-	sortedLabels := make(map[string]string, len(c.Labels))
-	keys := make([]string, 0, len(c.Labels))
-	for key := range c.Labels {
-		keys = append(keys, key)
+	claimLabels := make([]labelLine, 0, len(c.Labels))
+	for _, key := range c.OrderedLabelKeys() {
+		claimLabels = append(claimLabels, labelLine{Key: key, ValueYAML: strconv.Quote(c.Labels[key])})
 	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		sortedLabels[key] = c.Labels[key]
-	}
-	c.Labels = sortedLabels
 
 	data := view{
 		ServiceClaim:        c,
@@ -114,6 +115,7 @@ func Manifests(c claim.ServiceClaim) ([]byte, error) {
 		ImageTagYAML:        strconv.Quote(tag),
 		CPUYAML:             strconv.Quote(c.CPU),
 		MemoryYAML:          strconv.Quote(c.Memory),
+		ClaimLabels:         claimLabels,
 	}
 	var output bytes.Buffer
 	err = manifestTemplate.Execute(&output, data)

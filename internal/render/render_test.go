@@ -24,6 +24,38 @@ func TestManifestsContainPlatformGuardrailsAndGitOpsApplication(t *testing.T) {
 	}
 }
 
+func TestManifestsPropagateClaimLabelsToNamespaceInSortedOrder(t *testing.T) {
+	c := renderClaim("commerce", "catalog-api")
+	c.Labels = map[string]string{"tier": "backend", "cost-center": "commerce"}
+	data, err := Manifests(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(data)
+	namespace, _, found := strings.Cut(output, "\n---")
+	if !found {
+		t.Fatal("rendered output has no namespace document")
+	}
+	want := "  labels:\n" +
+		"    platform.belimm.dev/owner: commerce\n" +
+		"    platform.belimm.dev/environment: production\n" +
+		"    cost-center: \"commerce\"\n" +
+		"    tier: \"backend\""
+	if !strings.Contains(namespace, want) {
+		t.Fatalf("namespace labels block mismatch:\n%s", namespace)
+	}
+}
+
+func TestManifestsOmitClaimLabelBlockWhenNoLabels(t *testing.T) {
+	data, err := Manifests(renderClaim("commerce", "catalog-api"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "    platform.belimm.dev/environment: production\n---\n") {
+		t.Fatalf("expected the namespace document to end directly after platform labels:\n%s", data)
+	}
+}
+
 func TestManifestsRequireTaggedImage(t *testing.T) {
 	c := renderClaim("commerce", "catalog-api")
 	c.Image = "ghcr.io/example/catalog"

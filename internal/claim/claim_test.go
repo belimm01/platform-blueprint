@@ -87,6 +87,58 @@ func TestValidateRequiresImmutableImageTag(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsWellFormedLabels(t *testing.T) {
+	c := validClaim()
+	c.Labels = map[string]string{
+		"cost-center":            "commerce",
+		"tier":                   "backend",
+		"example.com/team":       "platform",
+		"app.kubernetes.io/name": "catalog",
+		"empty":                  "",
+	}
+	if err := c.Validate(); err != nil {
+		t.Fatalf("expected well-formed labels to be accepted: %v", err)
+	}
+}
+
+func TestValidateRejectsMalformedAndReservedLabels(t *testing.T) {
+	for name, labels := range map[string]map[string]string{
+		"reserved prefix":   {"platform.belimm.dev/owner": "attacker"},
+		"empty key":         {"": "value"},
+		"leading dash name": {"-tier": "backend"},
+		"space in value":    {"tier": "back end"},
+		"newline in value":  {"tier": "backend\ninjected: true"},
+		"newline in key":    {"tier\ninjected": "backend"},
+		"double slash key":  {"a/b/c": "value"},
+		"empty prefix":      {"/tier": "backend"},
+		"uppercase prefix":  {"Example.com/team": "platform"},
+		"overlong value":    {"tier": strings.Repeat("x", 64)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c := validClaim()
+			c.Labels = labels
+			if err := c.Validate(); err == nil {
+				t.Fatalf("expected labels %v to be rejected", labels)
+			}
+		})
+	}
+}
+
+func TestOrderedLabelKeysAreSorted(t *testing.T) {
+	c := validClaim()
+	c.Labels = map[string]string{"zeta": "1", "alpha": "2", "mu": "3"}
+	got := c.OrderedLabelKeys()
+	want := []string{"alpha", "mu", "zeta"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+}
+
 func TestLoadRejectsUnknownFieldsAndExplicitZeroReplicas(t *testing.T) {
 	for name, document := range map[string]string{
 		"unknown field": `{"name":"api","owner":"team","repository":"https://github.com/example/api","image":"ghcr.io/example/api:1","port":8080,"replica":7}`,

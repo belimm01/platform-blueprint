@@ -19,6 +19,8 @@ service claim (JSON)
 
 Application teams own source code, their deployable image, and workload-level configuration. The platform team owns the service-claim contract, environment policy, GitOps reconciliation, and reusable infrastructure compositions. Cloud credentials stay in controllers; they are never handed to application pipelines.
 
+Service-claim labels are validated against the Kubernetes label grammar and propagated to the provisioned namespace for ownership and cost attribution. The `platform.belimm.dev/` prefix is reserved for platform-owned metadata, so a claim that requests a label under that prefix is rejected before any output is produced.
+
 ## Reconciliation and failure model
 
 Rendered configuration is committed and reviewed before Argo CD reconciles it. Reconciliation is idempotent: the same claim produces byte-stable output. Invalid claims fail before any cluster mutation. Argo CD reports drift and retries convergence; it does not conceal unhealthy workloads, which remain visible through Kubernetes health and SLO telemetry.
